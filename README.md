@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Public Chat Frontend
 
-## Getting Started
+A lightweight public-facing chat interface that connects to a real-time backend using Socket.io.
 
-First, run the development server:
+This application allows users to send messages that are received and managed through an administrative dashboard.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🚀 Overview
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The Public Chat Frontend acts as a micro-application designed for user interaction.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+It connects to the Real-Time Chat Backend and enables:
 
-## Learn More
+- Sending messages to administrators
+- Receiving real-time responses
+- Displaying synchronized chat updates
 
-To learn more about Next.js, take a look at the following resources:
+The interface is intentionally minimal and focused on real-time communication.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 💬 Real-Time Communication
 
-## Deploy on Vercel
+This application connects to:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Express.js + Socket.io backend
+- MongoDB message storage (via backend)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Messages are transmitted instantly using WebSocket connections, ensuring real-time interaction between public users and the admin dashboard.
+
+---
+
+## 🧠 Architecture Role
+
+This project serves as:
+
+- A public micro-frontend
+- A client for the real-time messaging backend
+- A lightweight interface separate from the admin system
+
+It does not contain backend logic and relies entirely on the dedicated chat service.
+
+---
+
+## 🛠 Tech Stack
+
+- Next.js (or React)
+- TypeScript (if used)
+- Socket.io Client
+- REST API integration (if applicable)
+
+---
+
+## 🔗 Related Projects
+
+- Real-Time Chat Backend: [[GitHub Link]](https://github.com/hri-gh/chat-backend.git)
+- Personal Dashboard (Admin Interface): [[GitHub Link]](https://github.com/hri-gh/personal-dashboard.git)
+
+---
+
+## 📌 Purpose
+
+Built to demonstrate structured separation between:
+
+- Public user interface
+- Real-time backend service
+- Administrative dashboard system
+
+This separation allows clearer architecture and easier feature expansion.
