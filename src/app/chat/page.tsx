@@ -18,6 +18,8 @@ export default function ChatPage() {
     const [conversationId, setConversationId] = useState<string | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [text, setText] = useState("");
+    const [isClosed, setIsClosed] = useState(false);
+
 
     // Socket listeners
     useEffect(() => {
@@ -29,19 +31,45 @@ export default function ChatPage() {
             console.error(err);
         });
 
+        const onConversationClosed = () => {
+            setIsClosed(true);
+        };
+
+        socket.on("conversation:closed", onConversationClosed);
+
         return () => {
-            socket.off();
+            socket.off("conversation:closed", onConversationClosed);
         };
     }, []);
 
-    async function handleStartChat() {
-        const { conversationId } = await startConversation(name);
+    // Start conversations via API,
+    // async function handleStartChat() {
+    //     const { conversationId } = await startConversation(name);
 
-        localStorage.setItem("conversationId", conversationId);
-        setConversationId(conversationId);
+    //     localStorage.setItem("conversationId", conversationId);
+    //     setConversationId(conversationId);
+
+    //     socket.connect();
+    //     socket.emit("conversation:join", { conversationId });
+    // }
+
+    //
+    function handleStartChat() {
+        console.log("button clicked")
+        if (!name.trim()) return;
 
         socket.connect();
-        socket.emit("conversation:join", { conversationId });
+
+        socket.emit("conversation:start", {
+            visitorName: name,
+        });
+
+        socket.once("conversation:ready", ({ conversationId }) => {
+            localStorage.setItem("conversationId", conversationId);
+            setConversationId(conversationId);
+
+            socket.emit("conversation:join", { conversationId });
+        });
     }
 
     function sendMessage() {
@@ -83,13 +111,36 @@ export default function ChatPage() {
                             <Input
                                 value={text}
                                 onChange={(e) => setText(e.target.value)}
-                                placeholder="Type a message"
+                                placeholder={isClosed ? "Chat closed by admin" : "Type your message"}
+                                disabled={isClosed}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" && !e.shiftKey) {
+                                        e.preventDefault();
+                                        sendMessage();
+                                    }
+                                }}
+                                className={isClosed ? "bg-gray-200 border p-2 w-full" : ""}
                             />
-                            <Button onClick={sendMessage}>Send</Button>
+
+                            <Button
+                                onClick={sendMessage}
+                                disabled={isClosed || !text.trim()}
+                                className="bg-blue-500 text-white px-4 py-2 disabled:opacity-50"
+                            >
+                                Send
+                            </Button>
+
                         </div>
+                        {isClosed && (
+                            <p className="text-sm text-red-500 mt-2 text-center font-bold">
+                                This conversation has been closed by the admin.
+                            </p>
+                        )}
                     </>
                 )}
             </Card>
         </div>
     );
 }
+
+// "bg-blue-500 text-white px-4 py-2 disabled:opacity-50"
