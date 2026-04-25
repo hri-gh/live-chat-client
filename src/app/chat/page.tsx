@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { socket } from "@/lib/socket";
-import { startConversation } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 
 type Message = {
     sender: string;
@@ -20,6 +20,10 @@ export default function ChatPage() {
     const [text, setText] = useState("");
     const [isClosed, setIsClosed] = useState(false);
 
+    // Loading states
+    const [isConnecting, setIsConnecting] = useState(false);
+    const [connectionTimer, setConnectionTimer] = useState(0);
+
 
     // Socket listeners
     useEffect(() => {
@@ -29,6 +33,8 @@ export default function ChatPage() {
 
         socket.on("conversation:error", (err) => {
             console.error(err);
+            setIsConnecting(false);
+            setConnectionTimer(0);
         });
 
         const onConversationClosed = () => {
@@ -37,10 +43,38 @@ export default function ChatPage() {
 
         socket.on("conversation:closed", onConversationClosed);
 
+        // Listen for connection success
+        socket.once("conversation:ready", ({ conversationId }) => {
+            localStorage.setItem("conversationId", conversationId);
+            setConversationId(conversationId);
+            setIsConnecting(false);
+            setConnectionTimer(0);
+            socket.emit("conversation:join", { conversationId });
+        });
+
         return () => {
+            socket.off("message:new");
+            socket.off("conversation:error");
             socket.off("conversation:closed", onConversationClosed);
+            socket.off("conversation:ready");
         };
     }, []);
+
+
+    // 🔥 NEW: Timer effect
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+
+        if (isConnecting) {
+            interval = setInterval(() => {
+                setConnectionTimer((prev) => prev + 1);
+            }, 1000);
+        }
+
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [isConnecting]);
 
     // Start conversations via API,
     // async function handleStartChat() {
@@ -54,9 +88,28 @@ export default function ChatPage() {
     // }
 
     //
-    function handleStartChat() {
-        console.log("button clicked")
+    async function handleStartChat() {
         if (!name.trim()) return;
+
+        setIsConnecting(true);
+        setConnectionTimer(0);
+
+        // Send email notification IMMEDIATELY
+        // This doesn't wait for the backend to wake up
+        // try {
+        //     await fetch("/api/notify/new-chat", {
+        //         method: "POST",
+        //         headers: { "Content-Type": "application/json" },
+        //         body: JSON.stringify({
+        //             visitorName: name,
+        //             conversationId: "pending", // Will be updated
+        //         }),
+        //     });
+        //     console.log("✅ Email notification sent");
+        // } catch (error) {
+        //     console.error("Failed to send email notification:", error);
+        //     // Continue anyway - don't block chat
+        // }
 
         socket.connect();
 
@@ -64,12 +117,12 @@ export default function ChatPage() {
             visitorName: name,
         });
 
-        socket.once("conversation:ready", ({ conversationId }) => {
-            localStorage.setItem("conversationId", conversationId);
-            setConversationId(conversationId);
+        // socket.once("conversation:ready", ({ conversationId }) => {
+        //     localStorage.setItem("conversationId", conversationId);
+        //     setConversationId(conversationId);
 
-            socket.emit("conversation:join", { conversationId });
-        });
+        //     socket.emit("conversation:join", { conversationId });
+        // });
     }
 
     function sendMessage() {
@@ -94,8 +147,37 @@ export default function ChatPage() {
                             onChange={(e) => setName(e.target.value)}
                         />
                         <Button onClick={handleStartChat} disabled={!name}>
-                            Start Chat
+                            {isConnecting ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Connecting...
+                                </>
+                            ) : (
+                                "Start Chat"
+                            )}
                         </Button>
+
+                        {/* 🔥 NEW: Loading indicator with timer */}
+                        {isConnecting && (
+                            <div className="space-y-2 text-center">
+                                <div className="text-sm text-muted-foreground">
+                                    Connecting to chat server...
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                    {connectionTimer}s elapsed
+                                </div>
+                                {connectionTimer > 15 && (
+                                    <div className="text-xs text-amber-600">
+                                        Server is waking up, this may take up to 30 seconds...
+                                    </div>
+                                )}
+                                {connectionTimer > 30 && (
+                                    <div className="text-xs text-red-600">
+                                        Taking longer than expected. Please wait or reload the page to try again.
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </>
                 ) : (
                     <>
@@ -142,5 +224,3 @@ export default function ChatPage() {
         </div>
     );
 }
-
-// "bg-blue-500 text-white px-4 py-2 disabled:opacity-50"
